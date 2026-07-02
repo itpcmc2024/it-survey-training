@@ -1,3 +1,7 @@
+/**
+ * Main frontend controller.
+ */
+
 const App = {
   profile: null,
   master: null,
@@ -7,133 +11,212 @@ const App = {
     this.bindEvents();
 
     this.profile = await LiffService.init();
+
+    if (!this.profile) {
+      return;
+    }
+
     UI.setProfile(this.profile);
 
     try {
-      const masterRes = await API.getMaster();
-      if (!masterRes.success) throw new Error(masterRes.message || "โหลด Master ไม่สำเร็จ");
+      await this.loadMaster();
+      UI.showApp();
 
-      this.master = masterRes;
-      UI.renderOptions("department", masterRes.departments || []);
-      UI.renderOptions("position", masterRes.positions || []);
-      UI.renderTopics(masterRes.config || []);
-
-      const checkRes = await API.checkExisting(this.profile.userId);
-      if (checkRes.success && checkRes.existing) {
-        UI.fillExisting(checkRes.existing);
-      }
+      // Load existing answer after showing page to reduce perceived loading time.
+      this.loadExistingAnswer();
 
     } catch (err) {
-      UI.showResult("error", "โหลดข้อมูลระบบไม่สำเร็จ: " + err.message);
+      UI.showApp();
+      UI.showResult('error', 'โหลดข้อมูลระบบไม่สำเร็จ: ' + err.message);
+    }
+  },
+
+  async loadMaster() {
+    const response = await API.getMaster();
+
+    if (!response.success) {
+      throw new Error(response.message || 'โหลดข้อมูลไม่สำเร็จ');
     }
 
-    UI.showApp();
+    this.master = response;
+    UI.state.master = response;
+
+    UI.renderOptions('department', response.departments || []);
+    UI.renderOptions('position', response.positions || []);
+    UI.renderTopics(response.config || []);
+    UI.renderSettings(response.setting || {});
+  },
+
+  async loadExistingAnswer() {
+    try {
+      const response = await API.checkExisting(this.profile.userId);
+
+      if (response.success && response.existing) {
+        UI.fillExisting(response.existing);
+      }
+    } catch (err) {
+      console.warn('Check existing failed:', err);
+    }
   },
 
   bindTabs() {
-    document.querySelectorAll(".tab").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-        btn.classList.add("active");
-        document.getElementById(btn.dataset.page).classList.add("active");
+    document.querySelectorAll('.tab').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+
+        button.classList.add('active');
+        document.getElementById(button.dataset.page).classList.add('active');
       });
     });
   },
 
   bindEvents() {
-    document.addEventListener("change", e => {
-      if (e.target.id === "department") UI.toggleOther("department", "departmentOther");
-      if (e.target.id === "position") UI.toggleOther("position", "positionOther");
+    document.addEventListener('change', event => {
+      if (event.target.id === 'department') {
+        UI.toggleOther('department', 'departmentOther');
+      }
+
+      if (event.target.id === 'position') {
+        UI.toggleOther('position', 'positionOther');
+      }
+
       UI.updateProgress();
     });
 
-    document.getElementById("surveyForm").addEventListener("submit", e => this.submit(e));
+    document.getElementById('surveyForm').addEventListener('submit', event => {
+      this.submitSurvey(event);
+    });
 
-    document.getElementById("adminLoginBtn").addEventListener("click", () => this.adminLogin());
-    document.getElementById("exportCsvBtn").addEventListener("click", () => this.exportCsv());
+    document.getElementById('adminLoginBtn').addEventListener('click', () => {
+      this.adminLogin();
+    });
+
+    document.getElementById('saveSettingBtn').addEventListener('click', () => {
+      this.saveSettings();
+    });
+
+    document.getElementById('exportCsvBtn').addEventListener('click', () => {
+      this.exportCsv();
+    });
   },
 
   collectPayload() {
-    const selectedSubTopics = Array.from(document.querySelectorAll(".subtopic:checked")).map(cb => ({
-      topicId: cb.dataset.topicId,
-      subTopicId: cb.dataset.subId
-    }));
+    const selectedSubTopics = Array
+      .from(document.querySelectorAll('.subtopic:checked'))
+      .map(checkbox => ({
+        topicId: checkbox.dataset.topicId,
+        subTopicId: checkbox.dataset.subId
+      }));
 
     return {
       lineUserId: this.profile.userId,
       displayName: this.profile.displayName,
-      pictureUrl: this.profile.pictureUrl || "",
-      ip: "",
+      pictureUrl: this.profile.pictureUrl || '',
+      ip: '',
       device: navigator.userAgent,
-      department: document.getElementById("department").value,
-      departmentOther: document.getElementById("departmentOther").value,
-      position: document.getElementById("position").value,
-      positionOther: document.getElementById("positionOther").value,
-      remark: document.getElementById("remark").value,
+
+      department: document.getElementById('department').value,
+      departmentOther: document.getElementById('departmentOther').value,
+
+      position: document.getElementById('position').value,
+      positionOther: document.getElementById('positionOther').value,
+
+      remark: document.getElementById('remark').value,
+
       selectedSubTopics
     };
   },
 
-  async submit(e) {
-    e.preventDefault();
+  async submitSurvey(event) {
+    event.preventDefault();
 
     const payload = this.collectPayload();
 
     if (!payload.department || !payload.position || payload.selectedSubTopics.length === 0) {
-      UI.showResult("error", "กรุณากรอกข้อมูลทั่วไป และเลือกหัวข้ออบรมอย่างน้อย 1 รายการ");
+      UI.showResult(
+        'error',
+        'กรุณากรอกข้อมูลทั่วไป และเลือกหัวข้ออบรมอย่างน้อย 1 รายการ'
+      );
       return;
     }
 
-    const btn = document.getElementById("submitBtn");
-    btn.disabled = true;
-    btn.textContent = "กำลังบันทึก...";
+    const button = document.getElementById('submitBtn');
+    button.disabled = true;
+    button.textContent = 'กำลังบันทึก...';
 
     try {
       await API.saveResponse(payload);
-      UI.showResult("success", "บันทึกข้อมูลเรียบร้อยแล้ว หากเคยตอบแล้วระบบจะบันทึกเป็นการแก้ไข");
-      btn.textContent = "บันทึกเรียบร้อยแล้ว";
+
+      UI.showResult(
+        'success',
+        'บันทึกข้อมูลแล้ว หากเป็นคำตอบเดิม ระบบจะเก็บประวัติการแก้ไขใน Response_History'
+      );
+
+      button.disabled = false;
+      button.textContent = 'บันทึกการแก้ไขคำตอบ';
+
+      this.loadExistingAnswer();
+
     } catch (err) {
-      UI.showResult("error", "บันทึกไม่สำเร็จ: " + err.message);
-      btn.disabled = false;
-      btn.textContent = "ส่งแบบสำรวจ";
+      UI.showResult('error', 'บันทึกไม่สำเร็จ: ' + err.message);
+      button.disabled = false;
+      button.textContent = 'ส่งแบบสำรวจ';
     }
   },
 
   async adminLogin() {
-    const pin = document.getElementById("adminPin").value;
+    const pin = document.getElementById('adminPin').value;
+
     if (pin !== CONFIG.ADMIN_PIN) {
-      alert("รหัสผู้ดูแลไม่ถูกต้อง");
+      alert('รหัสผู้ดูแลไม่ถูกต้อง');
       return;
     }
 
-    document.getElementById("adminLogin").classList.add("hidden");
-    document.getElementById("dashboardContent").classList.remove("hidden");
+    document.getElementById('adminLogin').classList.add('hidden');
+    document.getElementById('dashboardContent').classList.remove('hidden');
 
-    const res = await API.getDashboard();
-    if (res.success) {
-      UI.state.dashboard = res.dashboard;
-      UI.renderDashboard(res.dashboard);
+    const response = await API.getDashboard();
+
+    if (response.success) {
+      UI.state.dashboard = response.dashboard;
+      UI.renderDashboard(response.dashboard);
     }
   },
 
-  exportCsv() {
-    const latest = UI.state.dashboard?.latest || [];
-    const headers = ["Display Name", "Department", "Position", "UpdatedAt", "Edit Count"];
-    const lines = [headers.join(",")];
+  async saveSettings() {
+    await API.saveSettings(UI.collectSettings());
+    alert('ส่งคำสั่งบันทึก Setting แล้ว กรุณาตรวจในชีต Setting');
+  },
 
-    latest.forEach(r => {
-      lines.push(headers.map(h => `"${String(r[h] || "").replace(/"/g, '""')}"`).join(","));
+  exportCsv() {
+    const rows = UI.state.dashboard?.latest || [];
+    const headers = ['Display Name', 'Department', 'Position', 'UpdatedAt', 'Edit Count'];
+    const lines = [headers.join(',')];
+
+    rows.forEach(row => {
+      const values = headers.map(header => {
+        return `"${String(row[header] || '').replace(/"/g, '""')}"`;
+      });
+
+      lines.push(values.join(','));
     });
 
-    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(['\ufeff' + lines.join('\n')], {
+      type: 'text/csv;charset=utf-8;'
+    });
+
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "it-survey-latest.csv";
-    a.click();
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = 'it-survey-latest.csv';
+    link.click();
+
     URL.revokeObjectURL(url);
   }
 };
 
-document.addEventListener("DOMContentLoaded", () => App.init());
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+});
