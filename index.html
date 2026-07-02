@@ -1,24 +1,84 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>แบบสำรวจความต้องการอบรมสารสนเทศ</title>
-
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>แบบสำรวจความต้องการอบรมด้านสารสนเทศ</title>
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body>
+  <div id="app">
+    <header class="hero">
+      <img src="assets/banner.png" class="banner" alt="banner">
+      <div class="hero-card">
+        <img src="assets/logo.png" class="logo" alt="logo">
+        <h1>แบบสำรวจความต้องการอบรมด้านสารสนเทศ</h1>
+        <p>งานสารสนเทศโรงพยาบาล</p>
+      </div>
+    </header>
 
-    <!-- ตรงนี้จะเป็นเนื้อหาของแบบสำรวจ -->
-    <h1>แบบสำรวจความต้องการอบรมด้านสารสนเทศ</h1>
+    <main class="container">
+      <section class="card profile-card">
+        <h2>ข้อมูลผู้ตอบ</h2>
+        <div class="profile-box">
+          <div class="avatar" id="avatarText">U</div>
+          <div>
+            <div class="name" id="displayName">กำลังโหลดข้อมูลจาก LINE...</div>
+            <div class="muted" id="lineUserId">Line User ID: -</div>
+          </div>
+        </div>
+      </section>
 
-    <script src="config.js"></script>
-    <script src="js/liff.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/script.js"></script>
+      <section class="progress-wrap">
+        <div class="progress-label">
+          <span>ความคืบหน้า</span>
+          <span id="progressText">0%</span>
+        </div>
+        <div class="progress">
+          <div id="progressBar"></div>
+        </div>
+      </section>
 
+      <form id="surveyForm">
+        <section class="card">
+          <h2>ตอนที่ 1 ข้อมูลทั่วไปของผู้ตอบ</h2>
+
+          <label>แผนก</label>
+          <select id="department" required>
+            <option value="">-- เลือกแผนก --</option>
+          </select>
+          <input id="departmentOther" class="hidden" placeholder="ระบุแผนกอื่น ๆ">
+
+          <label>ตำแหน่ง</label>
+          <select id="position" required>
+            <option value="">-- เลือกตำแหน่ง --</option>
+          </select>
+          <input id="positionOther" class="hidden" placeholder="ระบุตำแหน่งอื่น ๆ">
+        </section>
+
+        <section class="card">
+          <h2>ตอนที่ 2 เลือกหัวข้ออบรมที่ท่านสนใจ</h2>
+          <p class="muted">เลือกหัวข้อย่อยที่สนใจได้หลายข้อ</p>
+          <div id="topicContainer"></div>
+        </section>
+
+        <section class="card">
+          <label>ข้อเสนอแนะเพิ่มเติม</label>
+          <textarea id="remark" rows="4" placeholder="ระบุข้อเสนอแนะเพิ่มเติม ถ้ามี"></textarea>
+        </section>
+
+        <button type="submit" class="btn-primary">ส่งแบบสำรวจ</button>
+      </form>
+
+      <section id="resultBox" class="result hidden"></section>
+    </main>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/liff.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/script.js"></script>
 </body>
 </html>
