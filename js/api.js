@@ -1,58 +1,24 @@
-/**
- * API service for Google Apps Script Web App.
- */
-
 const API = {
-  async getMaster() {
-    return this.getJson(`${CONFIG.GAS_URL}?action=master&_=${Date.now()}`);
+  async getMaster(){ return this.get(`${CONFIG.GAS_URL}?action=master&_=${Date.now()}`); },
+  async getDashboard(){ return this.get(`${CONFIG.GAS_URL}?action=dashboard&_=${Date.now()}`); },
+  async getAdmin(){ return this.get(`${CONFIG.GAS_URL}?action=admin&_=${Date.now()}`); },
+  async checkExisting(id){ return this.get(`${CONFIG.GAS_URL}?action=check&lineUserId=${encodeURIComponent(id)}&_=${Date.now()}`); },
+  async saveSettings(items){ return this.post({action:"saveSettings",payload:{items}}); },
+  async saveResponse(payload){ return this.post({action:"saveResponse",payload}); },
+  async get(url){
+    const r=await fetch(url);
+    if(!r.ok) throw new Error(`API error: ${r.status}`);
+    const j=await r.json();
+    if(!j.success) throw new Error(j.message||"API ทำงานไม่สำเร็จ");
+    return j.data;
   },
-
-  async checkExisting(lineUserId) {
-    return this.getJson(
-      `${CONFIG.GAS_URL}?action=check&lineUserId=${encodeURIComponent(lineUserId)}&_=${Date.now()}`
-    );
-  },
-
-  async getDashboard() {
-    return this.getJson(`${CONFIG.GAS_URL}?action=dashboard&_=${Date.now()}`);
-  },
-
-  async saveResponse(payload) {
-    return this.post({
-      action: 'saveResponse',
-      payload
+  async post(body){
+    await fetch(CONFIG.GAS_URL,{
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify(body)
     });
-  },
-
-  async saveSettings(items) {
-    return this.post({
-      action: 'saveSettings',
-      payload: {
-        items
-      }
-    });
-  },
-
-  async getJson(url) {
-    const response = await fetch(url);
-    return await response.json();
-  },
-
-  async post(data) {
-    // no-cors is used to avoid browser CORS block with Google Apps Script.
-    // The request is still sent to GAS, but the browser cannot read the response body.
-    await fetch(CONFIG.GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8'
-      },
-      body: JSON.stringify(data)
-    });
-
-    return {
-      success: true,
-      message: 'ส่งข้อมูลแล้ว'
-    };
+    return {success:true};
   }
 };
