@@ -1,0 +1,8 @@
+.dashboard-bar-item{margin:14px 0}
+.dashboard-bar-header{display:flex;justify-content:space-between;gap:12px;margin-bottom:6px;color:#0f3d63;font-weight:700}
+.dashboard-bar-track{height:12px;overflow:hidden;background:#dbeafe;border-radius:999px}
+.dashboard-bar-fill{height:100%;background:linear-gradient(90deg,#2196f3,#64b5f6);border-radius:999px}
+.dashboard-empty{padding:18px;color:#64748b;text-align:center}
+#deptChart,#positionChart,#topicChart,#subTopicChart{min-height:30px;margin-bottom:24px}
+.setting-row{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:center;margin-bottom:10px}
+@media(max-width:640px){.setting-row{grid-template-columns:1fr}}
