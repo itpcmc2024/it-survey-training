@@ -19,13 +19,21 @@ async function initApp() {
   try {
     validateConfig();
     await initializeIdentity();
-    await loadPublicIp();
+
+    // ไม่รอ IP เพื่อให้หน้าแบบสอบถามเปิดเร็วขึ้น
+    loadPublicIp();
+
     await loadBootstrap();
     renderProfile();
     renderMasters();
     renderTopics();
-    await loadMyResponse();
-    await checkAdmin();
+
+    // โหลดคำตอบเดิมและตรวจ Admin พร้อมกัน
+    await Promise.all([
+      loadMyResponse(),
+      checkAdmin()
+    ]);
+
     updateProgress();
   } catch (error) {
     showNotice(error.message || String(error), 'danger');
