@@ -8,7 +8,8 @@ const state = {
   idToken: '',
   isAdmin: false,
   adminSessionToken: localStorage.getItem('itSurveyAdminSessionV312') || '',
-  adminDisplayName: ''
+  adminDisplayName: '',
+  noticeTimers: {}
 };
 
 document.addEventListener('DOMContentLoaded', initApp);
@@ -22,19 +23,32 @@ async function initApp() {
     validateConfig();
     await initializeIdentity();
 
-    // ไม่รอ IP เพื่อให้หน้าแบบสอบถามเปิดเร็วขึ้น
-    loadPublicIp();
+    const initialData = await apiPost({
+      action: 'initialData',
+      lineUserId: state.profile.userId,
+      sessionToken: state.adminSessionToken
+    });
 
-    await loadBootstrap();
+    state.bootstrap = initialData.bootstrap;
+    state.myResponse = initialData.myResponse;
+
+    applyPublicSettingsV313_(state.bootstrap.settings || {});
+    applySurveyOpenStateV314_(state.bootstrap.settings || {});
+
     renderProfile();
     renderMasters();
     renderTopics();
+    applyMyResponseV314_(state.myResponse);
 
-    // โหลดคำตอบเดิมและตรวจ Admin พร้อมกัน
-    await Promise.all([
-      loadMyResponse(),
-      restoreAdminSession()
-    ]);
+    if (initialData.admin && initialData.admin.isAdmin) {
+      setAdminUi(true, initialData.admin.displayName);
+    } else {
+      if (state.adminSessionToken) {
+        localStorage.removeItem('itSurveyAdminSessionV312');
+        state.adminSessionToken = '';
+      }
+      setAdminUi(false);
+    }
 
     updateProgress();
   } catch (error) {
@@ -81,15 +95,6 @@ function createDemoUserId() {
   return id;
 }
 
-async function loadPublicIp() {
-  try {
-    const response = await fetch('https://api.ipify.org?format=json');
-    const data = await response.json();
-    state.ip = data.ip || '';
-  } catch (ignore) {
-    state.ip = '';
-  }
-}
 
 async function apiGet(action, params = {}) {
   const url = new URL(APP_CONFIG.GAS_WEB_APP_URL);
@@ -118,18 +123,31 @@ async function apiPost(payload) {
 async function loadBootstrap() {
   state.bootstrap = await apiGet('bootstrap');
   applyPublicSettingsV313_(state.bootstrap.settings || {});
-  const isOpen = String(state.bootstrap.settings.SURVEY_OPEN).toUpperCase() === 'TRUE';
-  if (!isOpen) {
-    document.getElementById('surveyClosed').classList.remove('hidden');
-    document.getElementById('surveyForm').classList.add('hidden');
-  }
+  applySurveyOpenStateV314_(state.bootstrap.settings || {});
 }
 
 async function loadMyResponse() {
-  state.myResponse = await apiGet('myResponse', { lineUserId: state.profile.userId });
-  if (!state.myResponse) return;
+  state.myResponse = await apiGet('myResponse', {
+    lineUserId: state.profile.userId
+  });
+  applyMyResponseV314_(state.myResponse);
+}
 
-  const h = state.myResponse.header;
+function applySurveyOpenStateV314_(settings) {
+  const isOpen =
+    String(settings.SURVEY_OPEN).toUpperCase() === 'TRUE';
+
+  document.getElementById('surveyClosed')
+    .classList.toggle('hidden', isOpen);
+
+  document.getElementById('surveyForm')
+    .classList.toggle('hidden', !isOpen);
+}
+
+function applyMyResponseV314_(response) {
+  if (!response) return;
+
+  const h = response.header;
   setValue('department', h.department);
   toggleOtherField('department');
   setValue('departmentOther', h.departmentOther);
@@ -141,7 +159,7 @@ async function loadMyResponse() {
   setRadio('trainingMode', h.trainingMode);
   setValue('comment', h.comment);
 
-  state.myResponse.answers.forEach(answer => {
+  response.answers.forEach(answer => {
     const input = document.querySelector(
       `input[name="score_${cssEscape(answer.subTopicId)}"][value="${answer.score}"]`
     );
@@ -151,6 +169,7 @@ async function loadMyResponse() {
   document.getElementById('editNotice').classList.remove('hidden');
   document.getElementById('submitText').textContent = 'บันทึกการแก้ไข';
 }
+
 
 function renderProfile() {
   document.getElementById('displayName').textContent = state.profile.displayName;
@@ -309,7 +328,7 @@ async function submitSurvey(event) {
     computerSkill: checkedValue('computerSkill'),
     trainingMode: checkedValue('trainingMode'),
     comment: valueOf('comment'),
-    ip: state.ip,
+    ip: '',
     device: state.device,
     answers
   };
@@ -816,16 +835,46 @@ function setLoading(show, text = 'กำลังดำเนินการ...'
   document.getElementById('loadingOverlay').classList.toggle('show', show);
 }
 
-function showNotice(message, type = 'info', targetId = 'mainNotice') {
+function showNotice(
+  message,
+  type = 'info',
+  targetId = 'mainNotice',
+  durationMs = 5000
+) {
   const target = document.getElementById(targetId);
+  if (!target) return;
+
+  if (state.noticeTimers[targetId]) {
+    clearTimeout(state.noticeTimers[targetId]);
+    delete state.noticeTimers[targetId];
+  }
+
   target.textContent = message;
   target.className = `notice notice-${type}`;
   target.classList.remove('hidden');
+
+  if (durationMs > 0) {
+    state.noticeTimers[targetId] = setTimeout(() => {
+      target.classList.add('hidden');
+      target.textContent = '';
+      delete state.noticeTimers[targetId];
+    }, durationMs);
+  }
 }
 
-function clearNotice() {
-  document.getElementById('mainNotice').classList.add('hidden');
+function clearNotice(targetId = 'mainNotice') {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  if (state.noticeTimers[targetId]) {
+    clearTimeout(state.noticeTimers[targetId]);
+    delete state.noticeTimers[targetId];
+  }
+
+  target.classList.add('hidden');
+  target.textContent = '';
 }
+
 
 function setValue(id, value) {
   const element = document.getElementById(id);
