@@ -4,7 +4,9 @@ const state = {
   myResponse: null,
   charts: [],
   device: navigator.userAgent,
-  ip: ''
+  ip: '',
+  idToken: '',
+  isAdmin: false
 };
 
 document.addEventListener('DOMContentLoaded', initApp);
@@ -23,6 +25,7 @@ async function initApp() {
     renderMasters();
     renderTopics();
     await loadMyResponse();
+    await checkAdmin();
     updateProgress();
   } catch (error) {
     showNotice(error.message || String(error), 'danger');
@@ -59,6 +62,7 @@ async function initializeIdentity() {
     displayName: profile.displayName,
     pictureUrl: profile.pictureUrl || ''
   };
+  state.idToken = liff.getIDToken() || '';
 }
 
 function createDemoUserId() {
@@ -227,6 +231,7 @@ function bindFormEvents() {
   document.getElementById('department').addEventListener('change', () => toggleOtherField('department'));
   document.getElementById('position').addEventListener('change', () => toggleOtherField('position'));
   document.getElementById('refreshDashboard').addEventListener('click', loadDashboard);
+  document.getElementById('exportCsvButton').addEventListener('click', exportCsv);
 
   ['department','position','workExperience','departmentOther','positionOther'].forEach(id => {
     document.getElementById(id).addEventListener('change', updateProgress);
@@ -339,6 +344,8 @@ function renderDashboard(data) {
   document.getElementById('dashboardUpdated').textContent = data.generatedAt;
 
   destroyCharts();
+  const topicChartBox = document.getElementById('topicChart').parentElement;
+  topicChartBox.style.height = Math.max(390, data.topicStats.length * 105) + 'px';
   state.charts.push(new Chart(document.getElementById('topicChart'), {
     type: 'bar',
     data: {
@@ -353,12 +360,6 @@ function renderDashboard(data) {
       plugins: { legend: { display: false } }
     }
   }));
-
-  const topicChartBox =
-  document.getElementById('topicChart').parentElement;
-
-topicChartBox.style.height =
-  Math.max(360, data.topicStats.length * 105) + 'px';
 
   state.charts.push(new Chart(document.getElementById('trainingModeChart'), {
     type: 'doughnut',
@@ -393,6 +394,43 @@ function renderHeatmap(data) {
     </tr>
   `).join('');
   document.getElementById('heatmapTable').innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
+}
+
+
+async function checkAdmin() {
+  if (!state.idToken) return;
+  try {
+    const result = await apiPost({ action: 'checkAdmin', idToken: state.idToken });
+    state.isAdmin = !!result.isAdmin;
+    document.getElementById('exportCsvButton').classList.toggle('hidden', !state.isAdmin);
+    document.getElementById('adminBadge').classList.toggle('hidden', !state.isAdmin);
+  } catch (ignore) { state.isAdmin = false; }
+}
+
+async function exportCsv() {
+  if (!state.isAdmin) return;
+  setLoading(true, 'กำลังสร้างไฟล์ CSV...');
+  try {
+    const result = await apiPost({ action: 'exportCsv', idToken: state.idToken });
+    const binary = atob(result.base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i=0; i<binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = result.filename; document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    showNotice('Export CSV เรียบร้อยแล้ว', 'success', 'dashboardNotice');
+  } catch (error) {
+    showNotice(error.message || String(error), 'danger', 'dashboardNotice');
+  } finally { setLoading(false); }
+}
+
+function wrapChartLabel(text, maxLength = 24) {
+  const value = String(text || '');
+  const lines = [];
+  for (let i=0; i<value.length; i += maxLength) lines.push(value.slice(i, i + maxLength));
+  return lines;
 }
 
 function destroyCharts() {
@@ -450,30 +488,4 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;'
   }[char]));
-}
-
-function wrapChartLabel(text, maxLength = 24) {
-  const value = String(text || '');
-  const words = value.split(/\s+/);
-  const lines = [];
-  let currentLine = '';
-
-  words.forEach(word => {
-    const nextLine = currentLine
-      ? currentLine + ' ' + word
-      : word;
-
-    if (nextLine.length > maxLength && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = nextLine;
-    }
-  });
-
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-
-  return lines;
 }
