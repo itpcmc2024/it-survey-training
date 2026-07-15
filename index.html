@@ -1,178 +1,24 @@
-<!doctype html>
-<html lang="th">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0f6ea8">
-  <title>IT Training Survey</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-</head>
-<body>
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="loader-card" id="loadingText">กำลังเปิดระบบ...</div>
-  </div>
 
-  <main class="app-shell">
-    <header class="hero">
-      <div class="hero-row">
-        <div>
-          <h1>แบบสำรวจความต้องการพัฒนาทักษะด้านเทคโนโลยีดิจิทัล</h1>
-          <p>เพื่อวางแผนการอบรมให้ตรงกับความต้องการของบุคลากร</p>
-        </div>
-        <div class="user-area"><div class="user-chip">👤 <span id="displayName">กำลังโหลด...</span></div><div id="adminBadge" class="admin-badge hidden">🔐 ADMIN</div></div>
-      </div>
-    </header>
-
-    <nav class="tabs" aria-label="เมนูหลัก">
-      <button class="tab-button active" data-tab="surveyPanel">📝 แบบสอบถาม</button>
-      <button class="tab-button" data-tab="dashboardPanel">📊 ข้อมูลสถิติ</button>
-    </nav>
-
-    <div id="mainNotice" class="notice hidden"></div>
-
-    <section id="surveyPanel" class="tab-panel active">
-      <div id="surveyClosed" class="notice notice-danger hidden">
-        ขณะนี้ปิดรับคำตอบแบบสอบถาม
-      </div>
-
-      <form id="surveyForm">
-        <div class="progress-wrap">
-          <div class="progress-line"><div id="progressBar" class="progress-bar"></div></div>
-          <div id="progressText" class="progress-text">ตอบแล้ว 0 รายการ</div>
-        </div>
-
-        <div id="editNotice" class="notice notice-info hidden">
-          ระบบพบคำตอบเดิมของคุณแล้ว สามารถแก้ไขและกด “บันทึกการแก้ไข” ได้
-        </div>
-
-        <section class="card">
-          <h2 class="card-title">ข้อมูลผู้ตอบ</h2>
-          <div class="grid-2">
-            <div class="form-group">
-              <label for="respondentName">ชื่อจาก LINE</label>
-              <input id="respondentName" class="input" readonly>
-            </div>
-            <div class="form-group">
-              <label for="department">หน่วยงาน <span class="required">*</span></label>
-              <select id="department" required></select>
-            </div>
-            <div id="departmentOtherGroup" class="form-group hidden">
-              <label for="departmentOther">ระบุหน่วยงาน <span class="required">*</span></label>
-              <input id="departmentOther" class="input" maxlength="120">
-            </div>
-            <div class="form-group">
-              <label for="position">ตำแหน่ง <span class="required">*</span></label>
-              <select id="position" required></select>
-            </div>
-            <div id="positionOtherGroup" class="form-group hidden">
-              <label for="positionOther">ระบุตำแหน่ง <span class="required">*</span></label>
-              <input id="positionOther" class="input" maxlength="120">
-            </div>
-            <div class="form-group">
-              <label for="workExperience">อายุงาน <span class="required">*</span></label>
-              <select id="workExperience" required>
-                <option value="">— กรุณาเลือก —</option>
-                <option>น้อยกว่า 1 ปี</option>
-                <option>1-3 ปี</option>
-                <option>4-6 ปี</option>
-                <option>7-10 ปี</option>
-                <option>มากกว่า 10 ปี</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>ระดับทักษะการใช้คอมพิวเตอร์ของตนเอง <span class="required">*</span></label>
-            <div class="score-row">
-              <div class="score-option"><input id="skill1" name="computerSkill" type="radio" value="1"><label for="skill1">1</label></div>
-              <div class="score-option"><input id="skill2" name="computerSkill" type="radio" value="2"><label for="skill2">2</label></div>
-              <div class="score-option"><input id="skill3" name="computerSkill" type="radio" value="3"><label for="skill3">3</label></div>
-              <div class="score-option"><input id="skill4" name="computerSkill" type="radio" value="4"><label for="skill4">4</label></div>
-              <div class="score-option"><input id="skill5" name="computerSkill" type="radio" value="5"><label for="skill5">5</label></div>
-            </div>
-            <div class="legend"><span>น้อยมาก</span><span>ดีมาก</span></div>
-          </div>
-        </section>
-
-        <section class="card">
-          <h2 class="card-title">ระดับความต้องการอบรม</h2>
-          <p class="muted">กรุณาให้คะแนนทุกหัวข้อ: 1 = ไม่ต้องการ และ 5 = ต้องการมากที่สุด</p>
-        </section>
-
-        <div id="topicsContainer"></div>
-
-        <section class="card">
-          <h2 class="card-title">รูปแบบการอบรมและข้อเสนอแนะ</h2>
-          <div class="form-group">
-            <label>รูปแบบการอบรมที่สะดวก <span class="required">*</span></label>
-            <div class="score-row">
-              <div class="score-option"><input id="mode1" name="trainingMode" type="radio" value="Onsite"><label for="mode1">Onsite</label></div>
-              <div class="score-option"><input id="mode2" name="trainingMode" type="radio" value="Online"><label for="mode2">Online</label></div>
-              <div class="score-option"><input id="mode3" name="trainingMode" type="radio" value="ทั้งสองแบบ"><label for="mode3">ทั้งสอง</label></div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="comment">หัวข้ออื่นหรือข้อเสนอแนะเพิ่มเติม</label>
-            <textarea id="comment" maxlength="1000" placeholder="ระบุสิ่งที่อยากให้ฝ่าย IT จัดอบรมเพิ่มเติม"></textarea>
-          </div>
-          <div class="actions">
-            <button id="submitButton" class="btn btn-primary" type="submit">
-              💾 <span id="submitText">ส่งแบบสอบถาม</span>
-            </button>
-          </div>
-        </section>
-      </form>
-    </section>
-
-    <section id="dashboardPanel" class="tab-panel">
-      <div id="dashboardNotice" class="notice hidden"></div>
-
-      <section class="card">
-        <div class="hero-row">
-          <div>
-            <h2 class="card-title">Dashboard สรุปผลแบบสำรวจ</h2>
-            <div class="muted">ปรับปรุงล่าสุด: <span id="dashboardUpdated">-</span></div>
-          </div>
-          <div class="actions"><button id="refreshDashboard" class="btn btn-light">↻ เรียกข้อมูลใหม่</button><button id="exportCsvButton" class="btn btn-success hidden">⬇ Export CSV</button></div>
-        </div>
-      </section>
-
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">ผู้ตอบทั้งหมด</div><div id="totalRespondents" class="stat-value">0</div></div>
-        <div class="stat-card"><div class="stat-label">จำนวนหน่วยงาน</div><div id="totalDepartments" class="stat-value">0</div></div>
-        <div class="stat-card"><div class="stat-label">คะแนนหมวดสูงสุด</div><div id="topTopic" class="stat-value">0.00</div></div>
-        <div class="stat-card"><div class="stat-label">หัวข้อย่อยทั้งหมด</div><div class="stat-value">15</div></div>
-      </div>
-
-      <div class="chart-grid" style="margin-top:16px">
-        <section class="card">
-          <h3 class="card-title">คะแนนเฉลี่ยแยกตามหมวด</h3>
-          <div class="chart-box"><canvas id="topicChart"></canvas></div>
-        </section>
-        <section class="card">
-          <h3 class="card-title">รูปแบบการอบรม</h3>
-          <div class="chart-box"><canvas id="trainingModeChart"></canvas></div>
-        </section>
-      </div>
-
-      <section class="card">
-        <h3 class="card-title">10 หัวข้อที่มีความต้องการสูงสุด</h3>
-        <div id="rankingList" class="ranking-list"></div>
-      </section>
-
-      <section class="card">
-        <h3 class="card-title">Heatmap คะแนนเฉลี่ยแยกตามหน่วยงาน</h3>
-        <div class="table-wrap"><table id="heatmapTable"></table></div>
-      </section>
-    </section>
-  </main>
-
-  <script src="js/config.js"></script>
-  <script src="js/app.js"></script>
-</body>
-</html>
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IT Survey V3.2</title><link rel="stylesheet" href="css/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head>
+<body><main class="wrap"><header class="hero"><h1>แบบสำรวจความต้องการพัฒนาทักษะด้านเทคโนโลยีดิจิทัล</h1><div id="mode">กำลังตรวจสอบช่องทาง...</div></header>
+<nav class="tabs"><button class="tab active" data-p="survey">แบบสอบถาม</button><button class="tab" data-p="dash">ข้อมูลสถิติ</button><button class="tab" data-p="admin">Admin</button></nav>
+<div id="notice" class="notice hidden"></div>
+<section id="survey" class="panel active"><form id="form">
+<div class="card"><h2>ข้อมูลผู้ตอบ</h2>
+<div id="liffBox" class="grid hidden"><div><label>LINE User ID</label><input id="lineId" class="input" readonly></div><div><label>ชื่อ LINE</label><input id="lineName" class="input" readonly></div></div>
+<div id="webBox" class="grid hidden"><div><label>อีเมล *</label><input id="email" type="email" class="input"></div><div><label>ชื่อ-นามสกุล *</label><input id="fullName" class="input"></div><div class="actions"><button type="button" id="checkEmail" class="btn">ตรวจคำตอบเดิม</button></div></div>
+<div class="grid"><div><label>หน่วยงาน *</label><select id="department"></select></div><div><label>ตำแหน่ง *</label><select id="position"></select></div>
+<div><label>อายุงาน *</label><select id="work"><option value="">เลือก</option><option>น้อยกว่า 1 ปี</option><option>1-3 ปี</option><option>4-6 ปี</option><option>7-10 ปี</option><option>มากกว่า 10 ปี</option></select></div>
+<div><label>ทักษะคอมพิวเตอร์ *</label><select id="skill"><option value="">เลือก</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+<div><label>รูปแบบอบรม *</label><select id="training"><option value="">เลือก</option><option>Onsite</option><option>Online</option><option>ทั้งสองแบบ</option></select></div></div></div>
+<div id="topics"></div><div class="card"><label>ข้อเสนอแนะ</label><textarea id="comment"></textarea><div class="actions"><button class="btn">บันทึกแบบสอบถาม</button></div></div></form></section>
+<section id="dash" class="panel"><div class="stats"><div class="stat">ผู้ตอบทั้งหมด<br><b id="sTotal">0</b></div><div class="stat">หน่วยงาน<br><b id="sDept">0</b></div><div class="stat">LIFF<br><b id="sLiff">0</b></div><div class="stat">Web<br><b id="sWeb">0</b></div></div><div class="card"><div class="chart"><canvas id="chart"></canvas></div></div></section>
+<section id="admin" class="panel"><div id="loginCard" class="card"><h2>เข้าสู่ระบบ Admin</h2><div class="grid"><input id="au" class="input" placeholder="Username"><input id="ap" type="password" class="input" placeholder="Password"></div><div class="actions"><button id="loginBtn" class="btn">เข้าสู่ระบบ</button></div></div>
+<div id="console" class="hidden"><div class="card"><div class="actions"><button id="csvBtn" class="btn">Export CSV</button></div></div><div class="card"><h2>Setting</h2><div class="grid">
+<label>เปิดรับคำตอบ<select id="setOpen"><option>TRUE</option><option>FALSE</option></select></label>
+<label>อนุญาตแก้ไข<select id="setEdit"><option>TRUE</option><option>FALSE</option></select></label>
+<label>เปิด Dashboard<select id="setDash"><option>TRUE</option><option>FALSE</option></select></label>
+<label>โดเมนอีเมล<input id="setDomain" class="input" placeholder="เว้นว่าง = ทุกโดเมน"></label></div><div class="actions"><button id="saveSet" class="btn">บันทึก Setting</button></div></div></div></section>
+</main><script src="js/config.js"></script><script src="js/app.js"></script></body></html>
