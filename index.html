@@ -21,7 +21,7 @@
     <header class="hero">
       <div class="hero-row">
         <div>
-          <h1>แบบสำรวจความต้องการพัฒนาทักษะด้านเทคโนโลยีดิจิทัล</h1>
+          <h1 id="appTitle">แบบสำรวจความต้องการพัฒนาทักษะด้านเทคโนโลยีดิจิทัล</h1>
           <p>เพื่อวางแผนการอบรมให้ตรงกับความต้องการของบุคลากร</p>
         </div>
         <div class="user-area">
@@ -143,7 +143,11 @@
             <h2 class="card-title">Dashboard สรุปผลแบบสำรวจ</h2>
             <div class="muted">ปรับปรุงล่าสุด: <span id="dashboardUpdated">-</span></div>
           </div>
-          <div class="actions"><button id="refreshDashboard" class="btn btn-light">↻ เรียกข้อมูลใหม่</button><button id="exportCsvButton" class="btn btn-success hidden">⬇ Export CSV</button></div>
+          <div class="actions">
+            <button id="refreshDashboard" class="btn btn-light">↻ เรียกข้อมูลใหม่</button>
+            <button id="adminSettingsButton" class="btn btn-light hidden">⚙️ ตั้งค่าระบบ</button>
+            <button id="exportCsvButton" class="btn btn-success hidden">⬇ Export CSV</button>
+          </div>
         </div>
       </section>
 
@@ -200,6 +204,83 @@
         <button id="adminLoginSubmitButton" type="button" class="btn btn-primary">
           เข้าสู่ระบบ
         </button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="adminSettingsModal" class="modal-overlay hidden"
+       role="dialog" aria-modal="true" aria-labelledby="adminSettingsTitle">
+    <div class="modal-card settings-modal-card">
+      <button id="adminSettingsCloseButton" type="button"
+              class="modal-close" aria-label="ปิด">×</button>
+
+      <h2 id="adminSettingsTitle">⚙️ ตั้งค่าระบบ</h2>
+      <p class="muted">แก้ไขค่าการใช้งานโดยไม่ต้องเปิด Google Sheet</p>
+
+      <div id="adminSettingsNotice" class="notice hidden"></div>
+
+      <div class="form-group">
+        <label for="settingAppTitle">ชื่อแบบสอบถาม</label>
+        <input id="settingAppTitle" class="input" maxlength="200">
+      </div>
+
+      <div class="settings-grid">
+        <label class="setting-switch-row" for="settingSurveyOpen">
+          <span>
+            <strong>เปิดรับคำตอบ</strong>
+            <small>ปิดเมื่อต้องการหยุดรับแบบสอบถามชั่วคราว</small>
+          </span>
+          <select id="settingSurveyOpen">
+            <option value="TRUE">เปิด</option>
+            <option value="FALSE">ปิด</option>
+          </select>
+        </label>
+
+        <label class="setting-switch-row" for="settingAllowEdit">
+          <span>
+            <strong>อนุญาตให้แก้ไขคำตอบเดิม</strong>
+            <small>ผู้ตอบสามารถกลับมาแก้คะแนนและข้อมูลได้</small>
+          </span>
+          <select id="settingAllowEdit">
+            <option value="TRUE">อนุญาต</option>
+            <option value="FALSE">ไม่อนุญาต</option>
+          </select>
+        </label>
+
+        <label class="setting-switch-row" for="settingDashboardPublic">
+          <span>
+            <strong>เปิด Dashboard</strong>
+            <small>อนุญาตให้ผู้ใช้งานเปิด Tab ข้อมูลสถิติ</small>
+          </span>
+          <select id="settingDashboardPublic">
+            <option value="TRUE">เปิด</option>
+            <option value="FALSE">ปิด</option>
+          </select>
+        </label>
+
+        <label class="setting-switch-row" for="settingAdminExport">
+          <span>
+            <strong>เปิด Export CSV</strong>
+            <small>ปุ่ม Export ยังคงแสดงเฉพาะ Admin</small>
+          </span>
+          <select id="settingAdminExport">
+            <option value="TRUE">เปิด</option>
+            <option value="FALSE">ปิด</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="settings-warning">
+        การเปลี่ยนค่า “เปิดรับคำตอบ” และ “Dashboard” มีผลกับผู้ใช้ทันที
+        หลังจากบันทึกและโหลดหน้าใหม่
+      </div>
+
+      <div class="actions">
+        <button id="adminSettingsCancelButton" type="button"
+                class="btn btn-light">ยกเลิก</button>
+        <button id="adminSettingsSaveButton" type="button"
+                class="btn btn-primary">💾 บันทึกการตั้งค่า</button>
       </div>
     </div>
   </div>
