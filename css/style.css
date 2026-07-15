@@ -396,3 +396,28 @@ td:first-child, th:first-child { text-align: left; }
     width: 100%;
   }
 }
+
+
+/* V3.1.4.2 — ล็อกคำตอบเมื่อไม่อนุญาตให้แก้ไข */
+.completed-notice {
+  font-weight: 700;
+  color: #0b527e;
+  background: #eaf7ff;
+  border: 1px solid #c9e8f8;
+}
+
+.survey-readonly select:disabled,
+.survey-readonly textarea:disabled,
+.survey-readonly input:disabled + label,
+.survey-readonly input[type="text"]:disabled {
+  cursor: not-allowed;
+  opacity: .78;
+}
+
+.survey-readonly select:disabled,
+.survey-readonly textarea:disabled,
+.survey-readonly input[type="text"]:disabled {
+  background: #f3f6f8;
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+}
