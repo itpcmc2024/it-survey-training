@@ -421,3 +421,15 @@ td:first-child, th:first-child { text-align: left; }
   color: var(--text);
   -webkit-text-fill-color: var(--text);
 }
+
+
+/* V3.2 — LINE LIFF + Browser */
+.access-mode-badge {
+  background: rgba(255,255,255,.22);
+  font-size: .88rem;
+}
+.web-check-group { align-self: end; }
+.web-check-group .btn { width: 100%; }
+@media (max-width: 800px) {
+  .web-check-group label { display: none; }
+}
