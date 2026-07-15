@@ -26,6 +26,7 @@
         </div>
         <div class="user-area">
           <div class="user-chip">👤 <span id="displayName">กำลังโหลด...</span></div>
+          <div id="accessModeBadge" class="user-chip access-mode-badge">กำลังตรวจสอบช่องทาง</div>
           <div id="adminBadge" class="admin-badge hidden">🔐 <span id="adminDisplayName">ADMIN</span></div>
           <button id="adminLoginOpenButton" type="button" class="header-admin-button">🔐 Admin Login</button>
           <button id="adminLogoutButton" type="button" class="header-admin-button hidden">ออกจากระบบ</button>
@@ -62,9 +63,25 @@
         <section class="card">
           <h2 class="card-title">ข้อมูลผู้ตอบ</h2>
           <div class="grid-2">
-            <div class="form-group">
+            <div id="liffIdentityGroup" class="form-group">
               <label for="respondentName">ชื่อจาก LINE</label>
               <input id="respondentName" class="input" readonly>
+            </div>
+            <div id="webEmailGroup" class="form-group hidden">
+              <label for="respondentEmail">อีเมลผู้ตอบ <span class="required">*</span></label>
+              <input id="respondentEmail" class="input" type="email" maxlength="180"
+                     autocomplete="email" placeholder="name@example.com">
+            </div>
+            <div id="webFullNameGroup" class="form-group hidden">
+              <label for="respondentFullName">ชื่อ-นามสกุล <span class="required">*</span></label>
+              <input id="respondentFullName" class="input" type="text" maxlength="180"
+                     autocomplete="name" placeholder="กรอกชื่อและนามสกุล">
+            </div>
+            <div id="webCheckGroup" class="form-group web-check-group hidden">
+              <label>&nbsp;</label>
+              <button id="checkEmailButton" class="btn btn-light" type="button">
+                🔎 ตรวจสอบคำตอบเดิมจากอีเมล
+              </button>
             </div>
             <div class="form-group">
               <label for="department">หน่วยงาน <span class="required">*</span></label>
