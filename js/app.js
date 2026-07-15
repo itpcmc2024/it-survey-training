@@ -379,7 +379,7 @@ function renderHeatmap(data) {
   const head = `<tr><th>หมวดความรู้</th>${data.departments.map(d => `<th>${escapeHtml(d)}</th>`).join('')}</tr>`;
   const body = data.heatmapRows.map(row => `
     <tr>
-      <td>${escapeHtml(shortText(row.name, 42))}</td>
+      <td class="heatmap-topic-name">${escapeHtml(row.name)}</td>
       ${row.values.map(cell => {
         const opacity = cell.average ? Math.max(.12, cell.average / 5) : .04;
         return `<td><span class="heat" style="background:rgba(15,110,168,${opacity});color:${cell.average >= 3.5 ? '#fff' : '#17324d'}">${cell.average ? cell.average.toFixed(2) : '-'}</span></td>`;
