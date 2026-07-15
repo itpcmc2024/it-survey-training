@@ -6,7 +6,9 @@ const state = {
   device: navigator.userAgent,
   ip: '',
   idToken: '',
-  isAdmin: false
+  isAdmin: false,
+  adminSessionToken: localStorage.getItem('itSurveyAdminSessionV312') || '',
+  adminDisplayName: ''
 };
 
 document.addEventListener('DOMContentLoaded', initApp);
@@ -31,7 +33,7 @@ async function initApp() {
     // โหลดคำตอบเดิมและตรวจ Admin พร้อมกัน
     await Promise.all([
       loadMyResponse(),
-      checkAdmin()
+      restoreAdminSession()
     ]);
 
     updateProgress();
@@ -240,6 +242,16 @@ function bindFormEvents() {
   document.getElementById('position').addEventListener('change', () => toggleOtherField('position'));
   document.getElementById('refreshDashboard').addEventListener('click', loadDashboard);
   document.getElementById('exportCsvButton').addEventListener('click', exportCsv);
+  document.getElementById('adminLoginOpenButton').addEventListener('click', openAdminLoginModal);
+  document.getElementById('adminLoginCloseButton').addEventListener('click', closeAdminLoginModal);
+  document.getElementById('adminLoginSubmitButton').addEventListener('click', adminLogin);
+  document.getElementById('adminLogoutButton').addEventListener('click', adminLogout);
+  document.getElementById('adminPassword').addEventListener('keydown', event => {
+    if (event.key === 'Enter') adminLogin();
+  });
+  document.getElementById('adminLoginModal').addEventListener('click', event => {
+    if (event.target.id === 'adminLoginModal') closeAdminLoginModal();
+  });
 
   ['department','position','workExperience','departmentOther','positionOther'].forEach(id => {
     document.getElementById(id).addEventListener('change', updateProgress);
@@ -405,34 +417,196 @@ function renderHeatmap(data) {
 }
 
 
-async function checkAdmin() {
-  if (!state.idToken) return;
+
+function setAdminUi(isAdmin, displayName = '') {
+  state.isAdmin = !!isAdmin;
+  state.adminDisplayName = displayName || '';
+
+  document.getElementById('exportCsvButton')
+    .classList.toggle('hidden', !state.isAdmin);
+
+  document.getElementById('adminBadge')
+    .classList.toggle('hidden', !state.isAdmin);
+
+  document.getElementById('adminLogoutButton')
+    .classList.toggle('hidden', !state.isAdmin);
+
+  document.getElementById('adminLoginOpenButton')
+    .classList.toggle('hidden', state.isAdmin);
+
+  document.getElementById('adminDisplayName').textContent =
+    state.isAdmin
+      ? state.adminDisplayName || 'ADMIN'
+      : 'ADMIN';
+}
+
+async function restoreAdminSession() {
+  if (!state.adminSessionToken) {
+    setAdminUi(false);
+    return;
+  }
+
   try {
-    const result = await apiPost({ action: 'checkAdmin', idToken: state.idToken });
-    state.isAdmin = !!result.isAdmin;
-    document.getElementById('exportCsvButton').classList.toggle('hidden', !state.isAdmin);
-    document.getElementById('adminBadge').classList.toggle('hidden', !state.isAdmin);
-  } catch (ignore) { state.isAdmin = false; }
+    const result = await apiPost({
+      action: 'adminSession',
+      sessionToken: state.adminSessionToken
+    });
+
+    setAdminUi(true, result.displayName);
+  } catch (ignore) {
+    localStorage.removeItem('itSurveyAdminSessionV312');
+    state.adminSessionToken = '';
+    setAdminUi(false);
+  }
+}
+
+function openAdminLoginModal() {
+  document.getElementById('adminLoginNotice').classList.add('hidden');
+  document.getElementById('adminPassword').value = '';
+  document.getElementById('adminLoginModal').classList.remove('hidden');
+
+  setTimeout(() => {
+    document.getElementById('adminUsername').focus();
+  }, 50);
+}
+
+function closeAdminLoginModal() {
+  document.getElementById('adminLoginModal').classList.add('hidden');
+}
+
+async function adminLogin() {
+  const username = valueOf('adminUsername');
+  const password = valueOf('adminPassword');
+
+  if (!username || !password) {
+    showNotice(
+      'กรุณากรอก Username และ Password',
+      'danger',
+      'adminLoginNotice'
+    );
+    return;
+  }
+
+  setLoading(true, 'กำลังเข้าสู่ระบบ Admin...');
+
+  try {
+    const result = await apiPost({
+      action: 'adminLogin',
+      username,
+      password
+    });
+
+    state.adminSessionToken = result.sessionToken;
+
+    localStorage.setItem(
+      'itSurveyAdminSessionV312',
+      state.adminSessionToken
+    );
+
+    setAdminUi(true, result.displayName);
+    closeAdminLoginModal();
+
+    showNotice(
+      'เข้าสู่ระบบ Admin เรียบร้อยแล้ว',
+      'success',
+      'dashboardNotice'
+    );
+  } catch (error) {
+    showNotice(
+      error.message || String(error),
+      'danger',
+      'adminLoginNotice'
+    );
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function adminLogout() {
+  try {
+    if (state.adminSessionToken) {
+      await apiPost({
+        action: 'adminLogout',
+        sessionToken: state.adminSessionToken
+      });
+    }
+  } catch (ignore) {
+  } finally {
+    localStorage.removeItem('itSurveyAdminSessionV312');
+    state.adminSessionToken = '';
+    setAdminUi(false);
+
+    showNotice(
+      'ออกจากระบบ Admin เรียบร้อยแล้ว',
+      'success'
+    );
+  }
 }
 
 async function exportCsv() {
-  if (!state.isAdmin) return;
+  if (!state.isAdmin || !state.adminSessionToken) {
+    openAdminLoginModal();
+    return;
+  }
+
   setLoading(true, 'กำลังสร้างไฟล์ CSV...');
+
   try {
-    const result = await apiPost({ action: 'exportCsv', idToken: state.idToken });
+    const result = await apiPost({
+      action: 'exportCsv',
+      sessionToken: state.adminSessionToken
+    });
+
     const binary = atob(result.base64);
     const bytes = new Uint8Array(binary.length);
-    for (let i=0; i<binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: 'text/csv;charset=utf-8' });
+
+    for (let index = 0; index < binary.length; index++) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    const blob = new Blob(
+      [bytes],
+      { type: 'text/csv;charset=utf-8' }
+    );
+
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = result.filename; document.body.appendChild(a); a.click(); a.remove();
+    const anchor = document.createElement('a');
+
+    anchor.href = url;
+    anchor.download = result.filename;
+
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+
     URL.revokeObjectURL(url);
-    showNotice('Export CSV เรียบร้อยแล้ว', 'success', 'dashboardNotice');
+
+    showNotice(
+      'Export CSV เรียบร้อยแล้ว',
+      'success',
+      'dashboardNotice'
+    );
   } catch (error) {
-    showNotice(error.message || String(error), 'danger', 'dashboardNotice');
-  } finally { setLoading(false); }
+    if (
+      String(error.message || '')
+        .includes('Session หมดอายุ')
+    ) {
+      localStorage.removeItem('itSurveyAdminSessionV312');
+      state.adminSessionToken = '';
+      setAdminUi(false);
+      openAdminLoginModal();
+    }
+
+    showNotice(
+      error.message || String(error),
+      'danger',
+      'dashboardNotice'
+    );
+  } finally {
+    setLoading(false);
+  }
 }
+
 
 function wrapChartLabel(text, maxLength = 24) {
   const value = String(text || '');
