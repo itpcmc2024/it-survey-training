@@ -3,7 +3,7 @@ IT-SURVEY V3 — คู่มือติดตั้งด่วน
 
 ค่าที่ใส่ให้แล้ว
 - Google Sheet ID:
-  1ouT1I_ZKDhdaqH8kpkoP-fDqN1GZh1AovbPwjjKL8zI
+  1lqPOZphGqe0ZWlHzBLe6_E_mM306zI88ZsqvJ0wOtvQ
 - LIFF ID:
   2010431720-qlfYB6de
 
