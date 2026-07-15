@@ -24,7 +24,7 @@
           <h1>แบบสำรวจความต้องการพัฒนาทักษะด้านเทคโนโลยีดิจิทัล</h1>
           <p>เพื่อวางแผนการอบรมให้ตรงกับความต้องการของบุคลากร</p>
         </div>
-        <div class="user-chip">👤 <span id="displayName">กำลังโหลด...</span></div>
+        <div class="user-area"><div class="user-chip">👤 <span id="displayName">กำลังโหลด...</span></div><div id="adminBadge" class="admin-badge hidden">🔐 ADMIN</div></div>
       </div>
     </header>
 
@@ -138,7 +138,7 @@
             <h2 class="card-title">Dashboard สรุปผลแบบสำรวจ</h2>
             <div class="muted">ปรับปรุงล่าสุด: <span id="dashboardUpdated">-</span></div>
           </div>
-          <button id="refreshDashboard" class="btn btn-light">↻ เรียกข้อมูลใหม่</button>
+          <div class="actions"><button id="refreshDashboard" class="btn btn-light">↻ เรียกข้อมูลใหม่</button><button id="exportCsvButton" class="btn btn-success hidden">⬇ Export CSV</button></div>
         </div>
       </section>
 
