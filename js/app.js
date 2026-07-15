@@ -166,10 +166,65 @@ function applyMyResponseV314_(response) {
     if (input) input.checked = true;
   });
 
-  document.getElementById('editNotice').classList.remove('hidden');
-  document.getElementById('submitText').textContent = 'บันทึกการแก้ไข';
+  applyEditPermissionV3142_();
 }
 
+
+function isResponseLockedV3142_() {
+  if (!state.myResponse || !state.bootstrap) return false;
+
+  return String(
+    state.bootstrap.settings.ALLOW_EDIT
+  ).toUpperCase() !== 'TRUE';
+}
+
+function applyEditPermissionV3142_() {
+  const hasResponse = !!state.myResponse;
+  const locked = isResponseLockedV3142_();
+
+  const editNotice = document.getElementById('editNotice');
+  const completedNotice = document.getElementById('completedNotice');
+  const submitButton = document.getElementById('submitButton');
+  const submitText = document.getElementById('submitText');
+
+  editNotice.classList.toggle(
+    'hidden',
+    !hasResponse || locked
+  );
+
+  completedNotice.classList.toggle(
+    'hidden',
+    !hasResponse || !locked
+  );
+
+  submitButton.classList.toggle(
+    'hidden',
+    hasResponse && locked
+  );
+
+  if (hasResponse && !locked) {
+    submitText.textContent = 'บันทึกการแก้ไข';
+  } else if (!hasResponse) {
+    submitText.textContent = 'ส่งแบบสอบถาม';
+  }
+
+  setSurveyControlsLockedV3142_(hasResponse && locked);
+}
+
+function setSurveyControlsLockedV3142_(locked) {
+  const form = document.getElementById('surveyForm');
+  if (!form) return;
+
+  form.querySelectorAll(
+    'select, textarea, input[type="text"], input[type="radio"], input[type="checkbox"]'
+  ).forEach(element => {
+    if (element.id === 'respondentName') return;
+
+    element.disabled = locked;
+  });
+
+  form.classList.toggle('survey-readonly', locked);
+}
 
 function renderProfile() {
   document.getElementById('displayName').textContent = state.profile.displayName;
@@ -303,6 +358,15 @@ async function submitSurvey(event) {
   event.preventDefault();
   clearNotice();
 
+  if (isResponseLockedV3142_()) {
+    showNotice(
+      'user นี้ได้ทำแบบสอบถามแล้วค่ะ',
+      'info'
+    );
+    applyEditPermissionV3142_();
+    return;
+  }
+
   const answers = [...document.querySelectorAll('input[type="radio"][name^="score_"]:checked')]
     .map(input => ({
       topicId: input.dataset.topicId,
@@ -340,8 +404,7 @@ async function submitSurvey(event) {
   try {
     const result = await apiPost(payload);
     state.myResponse = { header: payload, answers };
-    document.getElementById('submitText').textContent = 'บันทึกการแก้ไข';
-    document.getElementById('editNotice').classList.remove('hidden');
+    applyEditPermissionV3142_();
     showNotice(
       result.action === 'CREATE'
         ? 'ส่งแบบสอบถามเรียบร้อยแล้ว ขอบคุณสำหรับข้อมูลค่ะ'
@@ -750,6 +813,7 @@ async function saveAdminSettingsV313_() {
     };
 
     applyPublicSettingsV313_(state.bootstrap.settings);
+    applyEditPermissionV3142_();
 
     const isSurveyOpen =
       String(saved.SURVEY_OPEN).toUpperCase() === 'TRUE';
