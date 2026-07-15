@@ -24,7 +24,12 @@
           <h1>แบบสำรวจความต้องการพัฒนาทักษะด้านเทคโนโลยีดิจิทัล</h1>
           <p>เพื่อวางแผนการอบรมให้ตรงกับความต้องการของบุคลากร</p>
         </div>
-        <div class="user-area"><div class="user-chip">👤 <span id="displayName">กำลังโหลด...</span></div><div id="adminBadge" class="admin-badge hidden">🔐 ADMIN</div></div>
+        <div class="user-area">
+          <div class="user-chip">👤 <span id="displayName">กำลังโหลด...</span></div>
+          <div id="adminBadge" class="admin-badge hidden">🔐 <span id="adminDisplayName">ADMIN</span></div>
+          <button id="adminLoginOpenButton" type="button" class="header-admin-button">🔐 Admin Login</button>
+          <button id="adminLogoutButton" type="button" class="header-admin-button hidden">ออกจากระบบ</button>
+        </div>
       </div>
     </header>
 
@@ -171,6 +176,33 @@
       </section>
     </section>
   </main>
+
+
+  <div id="adminLoginModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="adminLoginTitle">
+    <div class="modal-card">
+      <button id="adminLoginCloseButton" type="button" class="modal-close" aria-label="ปิด">×</button>
+      <h2 id="adminLoginTitle">เข้าสู่ระบบผู้ดูแล</h2>
+      <p class="muted">กรอก Username และ Password สำหรับ Admin</p>
+
+      <div id="adminLoginNotice" class="notice hidden"></div>
+
+      <div class="form-group">
+        <label for="adminUsername">Username</label>
+        <input id="adminUsername" class="input" autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label for="adminPassword">Password</label>
+        <input id="adminPassword" class="input" type="password" autocomplete="current-password">
+      </div>
+
+      <div class="actions">
+        <button id="adminLoginSubmitButton" type="button" class="btn btn-primary">
+          เข้าสู่ระบบ
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script src="js/config.js"></script>
   <script src="js/app.js"></script>
