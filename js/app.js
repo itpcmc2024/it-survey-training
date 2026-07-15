@@ -244,6 +244,7 @@ function renderTopics() {
 function bindTabs() {
   document.querySelectorAll('.tab-button').forEach(button => {
     button.addEventListener('click', async () => {
+      clearAllNotices();
       document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       button.classList.add('active');
@@ -835,31 +836,51 @@ function setLoading(show, text = 'กำลังดำเนินการ...'
   document.getElementById('loadingOverlay').classList.toggle('show', show);
 }
 
+function clearAllNotices() {
+  const noticeIds = [
+    'mainNotice',
+    'dashboardNotice',
+    'adminLoginNotice',
+    'adminSettingsNotice'
+  ];
+
+  noticeIds.forEach(targetId => {
+    const target = document.getElementById(targetId);
+
+    if (state.noticeTimers[targetId]) {
+      clearTimeout(state.noticeTimers[targetId]);
+      delete state.noticeTimers[targetId];
+    }
+
+    if (target) {
+      target.classList.add('hidden');
+      target.textContent = '';
+    }
+  });
+}
+
 function showNotice(
   message,
   type = 'info',
   targetId = 'mainNotice',
   durationMs = 5000
 ) {
+  // แสดงเฉพาะข้อความล่าสุด ไม่ให้หลายกล่องซ้อนกัน
+  clearAllNotices();
+
   const target = document.getElementById(targetId);
   if (!target) return;
-
-  if (state.noticeTimers[targetId]) {
-    clearTimeout(state.noticeTimers[targetId]);
-    delete state.noticeTimers[targetId];
-  }
 
   target.textContent = message;
   target.className = `notice notice-${type}`;
   target.classList.remove('hidden');
 
-  if (durationMs > 0) {
-    state.noticeTimers[targetId] = setTimeout(() => {
-      target.classList.add('hidden');
-      target.textContent = '';
-      delete state.noticeTimers[targetId];
-    }, durationMs);
-  }
+  // บังคับซ่อนหลังเวลาที่กำหนด แม้มี Action ก่อนหน้าค้างอยู่
+  state.noticeTimers[targetId] = window.setTimeout(() => {
+    target.classList.add('hidden');
+    target.textContent = '';
+    delete state.noticeTimers[targetId];
+  }, Math.max(1000, Number(durationMs) || 5000));
 }
 
 function clearNotice(targetId = 'mainNotice') {
