@@ -331,3 +331,68 @@ td:first-child, th:first-child { text-align: left; }
     width: auto;
   }
 }
+
+
+/* V3.1.3 — Admin Settings */
+.settings-modal-card {
+  width: min(100%, 620px);
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.setting-switch-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 125px;
+  gap: 14px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: #f8fbfd;
+}
+
+.setting-switch-row span {
+  min-width: 0;
+}
+
+.setting-switch-row strong {
+  display: block;
+  color: var(--text);
+}
+
+.setting-switch-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.setting-switch-row select {
+  margin: 0;
+}
+
+.settings-warning {
+  margin: 12px 0 16px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  background: #fff8df;
+  color: #775b00;
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .setting-switch-row {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-switch-row select {
+    width: 100%;
+  }
+}
