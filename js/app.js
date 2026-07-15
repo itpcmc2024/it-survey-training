@@ -342,7 +342,7 @@ function renderDashboard(data) {
   state.charts.push(new Chart(document.getElementById('topicChart'), {
     type: 'bar',
     data: {
-      labels: data.topicStats.map(t => shortText(t.name, 34)),
+      labels: data.topicStats.map(t => wrapChartLabel(t.name, 24)),
       datasets: [{ label: 'คะแนนเฉลี่ย', data: data.topicStats.map(t => t.average) }]
     },
     options: {
