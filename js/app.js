@@ -1,5 +1,7 @@
 const state = {
   profile: null,
+  accessMode: 'WEB',
+  identityKey: '',
   bootstrap: null,
   myResponse: null,
   charts: [],
@@ -25,7 +27,7 @@ async function initApp() {
 
     const initialData = await apiPost({
       action: 'initialData',
-      lineUserId: state.profile.userId,
+      identityKey: state.identityKey,
       sessionToken: state.adminSessionToken
     });
 
@@ -65,28 +67,68 @@ function validateConfig() {
 }
 
 async function initializeIdentity() {
-  if (!APP_CONFIG.REQUIRE_LIFF) {
-    state.profile = {
-      userId: localStorage.getItem('survey-demo-user') || createDemoUserId(),
-      displayName: 'ผู้ตอบแบบสอบถาม'
-    };
-    return;
+  const canUseLiff = typeof liff !== 'undefined' && APP_CONFIG.LIFF_ID;
+
+  if (canUseLiff) {
+    try {
+      await liff.init({ liffId: APP_CONFIG.LIFF_ID });
+
+      if (liff.isInClient()) {
+        if (!liff.isLoggedIn()) {
+          liff.login({ redirectUri: window.location.href });
+          throw new Error('กำลังเข้าสู่ระบบ LINE');
+        }
+
+        const profile = await liff.getProfile();
+
+        state.accessMode = 'LIFF';
+        state.profile = {
+          userId: profile.userId,
+          displayName: profile.displayName,
+          pictureUrl: profile.pictureUrl || ''
+        };
+        state.identityKey = profile.userId;
+        state.idToken = liff.getIDToken() || '';
+
+        applyIdentityModeV320_();
+        return;
+      }
+    } catch (error) {
+      if (String(error.message || '').includes('กำลังเข้าสู่ระบบ LINE')) {
+        throw error;
+      }
+    }
   }
 
-  await liff.init({ liffId: APP_CONFIG.LIFF_ID });
-
-  if (!liff.isLoggedIn()) {
-    liff.login({ redirectUri: window.location.href });
-    throw new Error('กำลังเข้าสู่ระบบ LINE');
+  if (APP_CONFIG.ENABLE_WEB_ACCESS === false) {
+    throw new Error('กรุณาเปิดระบบผ่าน LINE LIFF');
   }
 
-  const profile = await liff.getProfile();
+  state.accessMode = 'WEB';
   state.profile = {
-    userId: profile.userId,
-    displayName: profile.displayName,
-    pictureUrl: profile.pictureUrl || ''
+    userId: '',
+    displayName: 'ผู้ตอบผ่านเว็บไซต์',
+    pictureUrl: ''
   };
-  state.idToken = liff.getIDToken() || '';
+  state.identityKey = '';
+
+  applyIdentityModeV320_();
+}
+
+function applyIdentityModeV320_() {
+  const isWeb = state.accessMode === 'WEB';
+
+  document.getElementById('liffIdentityGroup').classList.toggle('hidden', isWeb);
+  document.getElementById('webEmailGroup').classList.toggle('hidden', !isWeb);
+  document.getElementById('webFullNameGroup').classList.toggle('hidden', !isWeb);
+  document.getElementById('webCheckGroup').classList.toggle('hidden', !isWeb);
+
+  document.getElementById('accessModeBadge').textContent =
+    isWeb ? '🌐 ลิงก์ปกติ' : '💬 LINE LIFF';
+
+  if (isWeb) {
+    document.getElementById('displayName').textContent = 'ผู้ตอบผ่านเว็บไซต์';
+  }
 }
 
 function createDemoUserId() {
@@ -148,6 +190,15 @@ function applyMyResponseV314_(response) {
   if (!response) return;
 
   const h = response.header;
+
+  if (state.accessMode === 'WEB') {
+    setValue('respondentEmail', h.email || '');
+    setValue('respondentFullName', h.fullName || h.displayName || '');
+    state.identityKey = h.lineUserId || '';
+    state.profile.displayName = h.fullName || h.displayName || 'ผู้ตอบผ่านเว็บไซต์';
+    document.getElementById('displayName').textContent = state.profile.displayName;
+  }
+
   setValue('department', h.department);
   toggleOtherField('department');
   setValue('departmentOther', h.departmentOther);
@@ -223,12 +274,18 @@ function setSurveyControlsLockedV3142_(locked) {
     element.disabled = locked;
   });
 
+  const checkEmailButton = document.getElementById('checkEmailButton');
+  if (checkEmailButton) checkEmailButton.disabled = locked;
+
   form.classList.toggle('survey-readonly', locked);
 }
 
 function renderProfile() {
   document.getElementById('displayName').textContent = state.profile.displayName;
-  document.getElementById('respondentName').value = state.profile.displayName;
+
+  if (state.accessMode === 'LIFF') {
+    document.getElementById('respondentName').value = state.profile.displayName;
+  }
 }
 
 function renderMasters() {
@@ -314,6 +371,8 @@ function bindTabs() {
 
 function bindFormEvents() {
   document.getElementById('surveyForm').addEventListener('submit', submitSurvey);
+  document.getElementById('checkEmailButton').addEventListener('click', checkWebEmailV320_);
+  document.getElementById('respondentEmail').addEventListener('input', handleWebEmailChangedV320_);
   document.getElementById('department').addEventListener('change', () => toggleOtherField('department'));
   document.getElementById('position').addEventListener('change', () => toggleOtherField('position'));
   document.getElementById('refreshDashboard').addEventListener('click', loadDashboard);
@@ -383,8 +442,13 @@ async function submitSurvey(event) {
 
   const payload = {
     action: 'saveResponse',
-    lineUserId: state.profile.userId,
-    displayName: state.profile.displayName,
+    accessMode: state.accessMode,
+    lineUserId: state.accessMode === 'LIFF' ? state.profile.userId : '',
+    displayName: state.accessMode === 'LIFF'
+      ? state.profile.displayName
+      : valueOf('respondentFullName'),
+    email: state.accessMode === 'WEB' ? valueOf('respondentEmail') : '',
+    fullName: state.accessMode === 'WEB' ? valueOf('respondentFullName') : '',
     department: valueOf('department'),
     departmentOther: valueOf('departmentOther'),
     position: valueOf('position'),
@@ -403,6 +467,15 @@ async function submitSurvey(event) {
 
   try {
     const result = await apiPost(payload);
+    if (state.accessMode === 'WEB') {
+      state.identityKey = 'EMAIL:' + valueOf('respondentEmail').toLowerCase();
+      payload.lineUserId = state.identityKey;
+      payload.displayName = valueOf('respondentFullName');
+      payload.email = valueOf('respondentEmail').toLowerCase();
+      payload.fullName = valueOf('respondentFullName');
+      document.getElementById('displayName').textContent = payload.fullName;
+    }
+
     state.myResponse = { header: payload, answers };
     applyEditPermissionV3142_();
     showNotice(
@@ -423,7 +496,13 @@ async function submitSurvey(event) {
 function updateProgress() {
   if (!state.bootstrap) return;
   let completed = 0;
-  let total = 5 + state.bootstrap.subTopics.length;
+  let total = 5 + state.bootstrap.subTopics.length +
+    (state.accessMode === 'WEB' ? 2 : 0);
+
+  if (state.accessMode === 'WEB') {
+    if (isValidEmailV320_(valueOf('respondentEmail'))) completed++;
+    if (valueOf('respondentFullName')) completed++;
+  }
 
   if (valueOf('department') && (valueOf('department') !== 'อื่นๆ' || valueOf('departmentOther'))) completed++;
   if (valueOf('position') && (valueOf('position') !== 'อื่นๆ' || valueOf('positionOther'))) completed++;
@@ -435,6 +514,81 @@ function updateProgress() {
   const percent = Math.round((completed / total) * 100);
   document.getElementById('progressBar').style.width = percent + '%';
   document.getElementById('progressText').textContent = `ตอบแล้ว ${completed}/${total} รายการ (${percent}%)`;
+}
+
+
+async function checkWebEmailV320_() {
+  if (state.accessMode !== 'WEB') return;
+
+  const email = valueOf('respondentEmail').toLowerCase();
+
+  if (!isValidEmailV320_(email)) {
+    showNotice('กรุณากรอกอีเมลให้ถูกต้องก่อนตรวจสอบ', 'danger');
+    return;
+  }
+
+  setLoading(true, 'กำลังตรวจสอบคำตอบเดิม...');
+
+  try {
+    const response = await apiPost({
+      action: 'findWebResponse',
+      email
+    });
+
+    if (!response) {
+      state.identityKey = 'EMAIL:' + email;
+      state.myResponse = null;
+      document.getElementById('editNotice').classList.add('hidden');
+      document.getElementById('completedNotice').classList.add('hidden');
+      document.getElementById('submitButton').classList.remove('hidden');
+      setSurveyControlsLockedV3142_(false);
+      showNotice('ยังไม่พบคำตอบเดิม สามารถเริ่มตอบแบบสอบถามได้ค่ะ', 'info');
+      return;
+    }
+
+    state.identityKey = response.header.lineUserId;
+    state.myResponse = response;
+    applyMyResponseV314_(response);
+    updateProgress();
+
+    showNotice(
+      isResponseLockedV3142_()
+        ? 'user นี้ได้ทำแบบสอบถามแล้วค่ะ'
+        : 'โหลดคำตอบเดิมเรียบร้อยแล้ว',
+      'info'
+    );
+  } catch (error) {
+    showNotice(error.message || String(error), 'danger');
+  } finally {
+    setLoading(false);
+  }
+}
+
+function handleWebEmailChangedV320_() {
+  if (state.accessMode !== 'WEB') return;
+
+  const currentEmail = valueOf('respondentEmail').toLowerCase();
+  const currentIdentity = currentEmail ? 'EMAIL:' + currentEmail : '';
+
+  if (
+    state.myResponse &&
+    state.myResponse.header &&
+    state.myResponse.header.lineUserId !== currentIdentity
+  ) {
+    state.myResponse = null;
+    state.identityKey = '';
+    document.getElementById('editNotice').classList.add('hidden');
+    document.getElementById('completedNotice').classList.add('hidden');
+    document.getElementById('submitButton').classList.remove('hidden');
+    document.getElementById('submitText').textContent = 'ส่งแบบสอบถาม';
+    setSurveyControlsLockedV3142_(false);
+  }
+
+  updateProgress();
+}
+
+function isValidEmailV320_(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ''));
 }
 
 async function loadDashboard() {
