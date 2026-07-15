@@ -354,6 +354,12 @@ function renderDashboard(data) {
     }
   }));
 
+  const topicChartBox =
+  document.getElementById('topicChart').parentElement;
+
+topicChartBox.style.height =
+  Math.max(360, data.topicStats.length * 105) + 'px';
+
   state.charts.push(new Chart(document.getElementById('trainingModeChart'), {
     type: 'doughnut',
     data: {
