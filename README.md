@@ -62,5 +62,18 @@ IT-SURVEY V3 — คู่มือติดตั้งด่วน
 -------
 - ฟังก์ชัน setupSystem() จะเขียนข้อมูล Master ใหม่ใน Department, Position,
   Topic_Master, SubTopic_Master และ Setting
+
+---------------
+**IT-SURVEY V3.1**
+1) สำรอง Google Sheet ก่อน
+2) แทนที่ไฟล์ GAS ทั้งหมด และเพิ่ม 05_AdminExport.gs
+3) รัน setupSystem() เพื่อสร้าง Dashboard, Log และ Admin
+4) ชีท Admin ใส่: LineUserID | DisplayName | ADMIN | TRUE | หมายเหตุ
+   นำ LineUserID จาก Response_Header คอลัมน์ C ของบัญชีผู้ดูแล
+5) Deploy > Manage deployments > Edit > New version > Deploy
+6) แทนที่ index.html, css/style.css, js/app.js บน GitHub
+7) ใน js/config.js เก็บ GAS /exec URL เดิมไว้
+
+V3.1 แก้ Error ลบแถว, เก็บประวัติคะแนนเดิมครบ, Heatmap แสดงชื่อเต็ม, Responsive และ Export CSV เฉพาะ Admin
 - ระบบไม่ลบข้อมูลใน Response_Header, Response_Detail และ Response_History
 - Dashboard แสดงเฉพาะข้อมูลรวม ไม่เปิดเผยรายชื่อผู้ตอบ
