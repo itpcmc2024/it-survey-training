@@ -445,3 +445,29 @@ function escapeHtml(value) {
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;'
   }[char]));
 }
+
+function wrapChartLabel(text, maxLength = 24) {
+  const value = String(text || '');
+  const words = value.split(/\s+/);
+  const lines = [];
+  let currentLine = '';
+
+  words.forEach(word => {
+    const nextLine = currentLine
+      ? currentLine + ' ' + word
+      : word;
+
+    if (nextLine.length > maxLength && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = nextLine;
+    }
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines;
+}
